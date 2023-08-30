@@ -1,8 +1,3 @@
-# Name:
-# Difficulty:
-# URL: 
-# Contact: Joshua.Land6@Gmail.com
-
 # imports for testClass
 import curses
 import sys
@@ -10,7 +5,7 @@ from time import perf_counter
 from curses import panel
 
 # ****************** CHANGE THIS **********************************************
-from threeSum import Solution
+from search2dMatrix import Solution
 
 class Test:
     def __init__( self ) -> None:
@@ -19,15 +14,12 @@ class Test:
         
         # ******************************** CHANGE THIS TOO ********************
         
-        self.function_to_test = self.solution.threeSum # add the function name here
+        self.function_to_test = self.solution.searchMatrix # add the function name here
         
-        self.valid_input = [[-1,0,1,2,-1,-4],
-                            [0,1,1],
-                            [-1,0,1,2,-1,-4,-2,-3,3,0,4]]   # this is an array of valid input
-        
-        self.expected_output = ["[-1 ,0 ,1], [-1, -1, 2]",
-                                "[]",
-                                "[[-4,0,4],[-4,1,3],[-3,-1,4],[-3,0,3],[-3,1,2],[-2,-1,3],[-2,0,2],[-1,-1,2],[-1,0,1]]"]   # output you expect, needs to be the same length as valid_input
+        self.valid_input = [[[1,3,5,7],[10,11,16,20],[23,30,34,60]], [[1,3,5,7],[10,11,16,20],[23,30,34,60]], [[1]]] # this is an array of valid input
+        self.second_valid_input = [3, 13, 0]
+        self.multiple_inputs = True
+        self.expected_output = ['True', 'false', 'false']
         
         # **********************************************************************
 
@@ -94,11 +86,19 @@ class Test:
         answers = []
         times = []
         
-        
+        indexer = 0
         for array_to_test in self.valid_input:
-            stamp_one = perf_counter()
-            answer = self.function_to_test(array_to_test)
-            stamp_two = perf_counter()
+            
+            if self.multiple_inputs:
+                target = self.second_valid_input[indexer]
+                stamp_one = perf_counter()
+                answer = self.function_to_test(array_to_test, target)
+                stamp_two = perf_counter()
+                indexer += 1
+            else:
+                stamp_one = perf_counter()
+                answer = self.function_to_test(array_to_test)
+                stamp_two = perf_counter()
             
             times.append(stamp_two - stamp_one)
             answers.append(answer)
@@ -113,7 +113,10 @@ class Test:
             total_tests_message = f'Total Test: {total_tests}'
             
             # input, expected, actual, time
-            input_message = f'Input: \t{ self.valid_input[test_number] }'
+            if self.multiple_inputs:
+                input_message = f'Input: \t{ self.valid_input[test_number] }, and {self.second_valid_input[test_number]}'
+            else:
+                input_message = f'Input: \t{ self.valid_input[test_number] }'
             self.lower_window.addstr(1, 2, input_message)
 
             expected = f'Expected: \t{ self.expected_output[test_number] }'
@@ -127,8 +130,6 @@ class Test:
             self.lower_window.addstr(7, self.measurments["center_x"], time )
             
             self.lower_window.addstr(10, self.measurments["center_x"] - len(self.messages["quit"]) // 2, self.messages["quit"] )
-            
-            time = f'Test ran in { times } Seconds'
             
             if test_number < total_tests - 1:
                 test_number += 1
