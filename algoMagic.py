@@ -6,74 +6,123 @@
 #                                                                             #
 # *************************************************************************** #
 
+# these are all for different classes, so when Split to separate files makes sure
+# to grab the ones needed for each class.
 import pygame as pg
 from random import randint, shuffle
+from math import floor
 from time import sleep
 import colorsys
 
+# AlgoMagic is designed to only have one instance at a time.
+# more than one instance at a time may result in unexpected behavior.
 class AlgoMagic:
-    
+    # some class attributes, we dont need individual copies of all these.
+    # WARNING ALTERING ANY OF THESE WILL CHANGE THEM FOR ALL INSTANCES OF THIS CLASS
+    RESOLUTION = (2000, 2000) # length and width of the screen
+    WINDOW_TITLE = 'Algorithm Magic'
+    BUTTON_COLOR_LIGHT = pg.Color(164, 66, 245) # normal button color
+    BUTTON_COLOR_DARK = pg.Color(65, 23, 99)   # Color When hovering over a button
+    BUTTON_TXT_COLOR = pg.Color(255, 255, 255) # Button Txt Color.
+
+    # get pygame ready, fire up the main window.
     def __init__(self) -> None:
-        self.resolution = (2000, 1024)
         pg.init()
-        self.screen = pg.display.set_mode(self.resolution, pg.RESIZABLE)
-        pg.display.set_caption(' Algorithm Magic ')
+        self.screen = pg.display.set_mode(self.RESOLUTION, pg.RESIZABLE)
+        pg.display.set_caption(self.WINDOW_TITLE)
+        self.font = pg.font.SysFont("ariel", 36)
         # need this to limit frame rate.
         self.clock = pg.time.Clock()
+        self.sorter = None
         self.running = False
-        
+        self.menu = {}
+
+
     def start(self) -> None:
-        self.running = True
-        
+        # makes all the buttons
+        self.createButtons()
         # create all the bars, but dont draw them here.
-        bar_handler = Bar_Handler(self.screen)
-        bar_handler.createBars()
-        
-        og_array = bar_handler.bars
-        sorted_array = []
-        
+        self.bar_handler = Bar_Handler(self.screen)
+        self.bar_handler.createBars()
+        # create the sorting objects here.
+        self.sorter = SelectionSort(self)
         # Main Loop happens here.
+        self.running = True # sentinal for mainGameLoop.
         while self.running:
             # clean the screen
             self.screen.fill("black")
-            
+            self.screen.blit(self.select_sort_button, (100, 100))
             # changes should happen here.
-
-            # selection sort
-            og_index = 0
-            current = og_array[0]
-            
-            for bar in og_array[og_index:]:
-                print(f'Bar Height is: {bar.rect.height}')
-                print(f'Current Height: {current.rect.height}')
-                if bar.rect.height < current.rect.height:
-                    print(f'Swapping bar with current')
-                    current = bar
-            print(f'Increasing og_index from: {og_index}')
-            og_index += 1
-            print(f'To: {og_index}')
-            sorted_array.append(current)
-            current_index = sorted_array.index(current)
-            sorted_array[current_index].id = current_index
-            print(f'Current ID: {current.id}, Switching ID: {current_index}')
-            print(f'Should Grow by one each Time: {len(sorted_array)}')
-            
-
-            bar_handler.draw_all()
+            self.bar_handler.draw_all()
             # check for exit
             self.handleEvents()
             # show the new changes.
             pg.display.flip()
             # limits frame rate for consistent speeds across devices.
             self.clock.tick(60)
-
         # clean up
         pg.quit()
 
+    # happens each loop right before flip.
     def handleEvents(self):
+        # grab mouse position.
+        mouse_pos = pg.mouse.get_pos()
+        # grab and check event queue
         for event in pg.event.get():
+            # leave when the user wants to leave.
             if event.type == pg.QUIT:
                 self.running = False
+            elif event.type == pg.MOUSEBUTTONUP:
+                self.sorter.start_sorting()
+
+        # change the sort button color when you hover.
+        if mouse_pos[0] > 100 and mouse_pos[0] < 200 and mouse_pos[1] > 100 and mouse_pos[1] < 200:
+            # switch the button color. Hovering.
+            self.button_color = self.BUTTON_COLOR_DARK
+        else:
+            # here youre not over the button.
+            self.button_color = self.BUTTON_COLOR_LIGHT
+
+    def createButtons(self):
+        words_for_buttons = ["Select Sort", "Randomize", "Sort"]
+        
+        # make a light and a dark button for each word in the buttons list.
+        for word in words_for_buttons:
+            lght_drk = self.button_maker(word)
+            self.menu = {word : lght_drk}
+        
+
+        
+        
+        
+    # this makes one button with txt as the word, it handles spacing etc. returns one light button and one dark
+    #   This way it can change with hover.
+    def button_maker(self, txt):
+        button_cushion = .1 # makes buttons look good
+        txt_color = pg.Color(255, 255, 255, 255)
+        light_color = pg.Color(57, 196, 94)
+        dark_color = pg.Color(24, 84, 40)
+        font_name = "arial"
+        font = pg.font.SysFont(font_name, 36)
+        button_txt = font.render(txt, True, txt_color) # make white text
+        button_txt_rect = button_txt.get_rect()
+        # make the button 20% larger.
+        button_rect = pg.Rect(100, 100, button_txt_rect.width + (button_txt_rect.width * .2),
+                            button_txt_rect.height + (button_txt_rect.height * .2))
+
+        button_surface_lght = pg.Surface((button_rect.width, button_rect.height), pg.SRCALPHA) # creates the surface
+        button_surface_drk = button_surface_lght.copy()
+
+        # Color the buttons
+        button_surface_lght.fill(light_color)
+        button_surface_drk.fill(dark_color)
+        
+        # add the txt
+        button_surface_lght.blit(button_txt, (button_txt_rect.width * .1, 0))
+        button_surface_drk.blit(button_txt, (button_txt_rect.width * .1, 0))
+        return [button_surface_lght, button_surface_drk]
+        
+
 # ************************************ END ALGO MAGIC CLASS *******************
 
 
@@ -97,12 +146,12 @@ class Bar:
 
 
     def move(self, x_coord: int ) -> None:
-        temp = self.rect.centerx
         self.rect.centerx = x_coord
-
-
+    
+        
     def draw(self, screen: pg.surface) -> None:
         screen.fill( self.color, self.rect )
+        
 # *********************************************** END BAR CLASS ***************
 
 
@@ -124,16 +173,30 @@ class Bar_Handler:
             height = (number + 1) * 10 # <-------------------------- **SCALER FOR BAR HEIGHT
             _id = number # id is index.
             top = self.screen_height - height
-            rect = pg.Rect(left, top, self.bar_width, height, )
+            rect = pg.Rect(left, top, self.bar_width, height )
             new_bar = Bar(rect, _id)
             # print( f'Left: { left } \n Top: { top } \n _id: { _id }')
             self.bars.append( new_bar )
         # now that the list is made we need to shuffle it
         self.shuffle_the_list()
 
-
+    # I create them in order so we have to shuffle them after
+    #  Also useful when I show multiple
     def shuffle_the_list(self):
         shuffle(self.bars)
+        self.move_all()
+
+    def swap(self, index_one: int, index_two: int):
+        if index_one == index_two:
+            return
+        # this should swap positions of the bars. Also need to move them
+        self.bars[index_one], self.bars[index_two] = self.bars[index_two], self.bars[index_one]
+        # move the bars to match thier new index.
+        self.bars[index_one].move(index_one * self.bar_width)
+        self.bars[index_two].move(index_two * self.bar_width)
+        
+            
+    def move_all(self):
         index = 0
         for bar in self.bars:
             bar.move(index)
@@ -150,33 +213,28 @@ class Bar_Handler:
             bar.draw(self.screen)
 # ************************************************************ END BAR HANDLER*
 
-# SELECTION SORT SELECTION SORT SELECTION SORT SELECTION SORT SELECTION SORT **
-# Selection Sort Works by moving the minimum element in each pass to a new array
-#   The complexity is O(n^2), So not good as lists get longer.
+# _________________________________________________________________________________________________SELECTION SORT_________________________
+# a class to sort list in place. For this to show Im going to require a pg object.
 class SelectionSort:
-    def __init__( self, array_to_sort ) -> None:
-        self.og_array = array_to_sort
-        self.sorted_array = []
-        
-    def sort_me(self) -> list:
-        while len(self.og_array) > 1:
-            for bar in self.og_array:
-                smallest = self.og_array[0]
-                for number in self.og_array:
-                    if number.id < smallest.id:
-                        smallest = number
-                self.sorted_array.append(smallest)
-                self.og_array.pop(smallest)
-                
-    def align_to_index(self):
-        for bar in self.sorted_array:
-            bar.move(bar.id)
-
-        
-
-        
+    def __init__(self, algoMagic: AlgoMagic) -> None:
+        self.program = algoMagic
+        self.list_to_sort = self.program.bar_handler.bars
     
-        
+    def start_sorting(self):
+         # Selection Sort **********************~----> SELECTION SORT IMPLEMENTATION HERE.
+        for i in range(len(self.list_to_sort)):
+            min_index = i
+            for j in range(min_index + 1, len(self.list_to_sort)):
+                if self.list_to_sort[min_index].id > self.list_to_sort[j].id:
+                    min_index = j
+            self.program.bar_handler.swap(min_index, i)
+            # this draws bar_handler.bars
+            self.program.bar_handler.draw_all()
+            # need to show it working
+            pg.display.flip()
+            self.program.screen.fill("black")
+            self.program.clock.tick(60)
+            sleep(.25)
 
 
 
