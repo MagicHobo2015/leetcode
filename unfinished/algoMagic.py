@@ -51,7 +51,7 @@ class AlgoMagic:
         while self.running:
             # clean the screen
             self.screen.fill("black")
-            self.screen.blit(self.select_sort_button, (100, 100))
+            
             # changes should happen here.
             self.bar_handler.draw_all()
             # check for exit
@@ -90,11 +90,8 @@ class AlgoMagic:
         for word in words_for_buttons:
             lght_drk = self.button_maker(word)
             self.menu = {word : lght_drk}
-        
 
-        
-        
-        
+
     # this makes one button with txt as the word, it handles spacing etc. returns one light button and one dark
     #   This way it can change with hover.
     def button_maker(self, txt):
